@@ -6,6 +6,8 @@
 
 <img width="626" alt="waveform screenshot" src="https://github.com/katspaugh/wavesurfer.js/assets/381895/05f03bed-800e-4fa1-b09a-82a39a1c62ce">
 
+**Gold sponsor 💖** [Closed Caption Creator](https://www.closedcaptioncreator.com)
+
 ## Getting started
 
 Install and import the package:
@@ -22,7 +24,7 @@ Alternatively, insert a UMD script tag which exports the library as a global `Wa
 <script src="https://unpkg.com/wavesurfer.js@7"></script>
 ```
 
-Create a wavesurfer instance and pass various [options](#wavesurfer-options):
+Create a wavesurfer instance and pass various [options](http://wavesurfer.xyz/docs/options):
 ```js
 const wavesurfer = WaveSurfer.create({
   container: '#waveform',
