@@ -675,6 +675,85 @@ class RegionsPlugin extends BasePlugin<RegionsPluginEvents, RegionsPluginOptions
     )
   }
 
+  public saveRegions(regions: Region[]) {
+    const fragment = document.createDocumentFragment()
+    for (const region of regions) {
+      fragment.appendChild(region.element)
+    }
+
+    this.regionsContainer.appendChild(fragment)
+
+    const newRegionSubscriptions: (() => void)[] = []
+    for (const region of regions) {
+      const regionSubscriptions = [
+        region.on('update', (side) => {
+          if (!side) {
+            this.adjustScroll(region)
+          }
+        }),
+        region.on('update-end', () => {
+          this.emit('region-updated', region)
+        }),
+        region.on('play', () => {
+          this.wavesurfer?.play()
+          this.wavesurfer?.setTime(region.start)
+        }),
+        region.on('click', (e) => {
+          this.emit('region-clicked', region, e)
+        }),
+        region.on('dblclick', (e) => {
+          this.emit('region-double-clicked', region, e)
+        }),
+        region.once('remove', () => {
+          this.regions = this.regions.filter((reg) => reg !== region)
+          this.emit('region-removed', region)
+        }),
+      ]
+      newRegionSubscriptions.push(...regionSubscriptions)
+      this.regions.push(region)
+      this.emit('region-created', region)
+    }
+    this.subscriptions.push(...newRegionSubscriptions)
+  }
+
+  /** Create a region with given parameters */
+
+  /**
+   * Add multiple regions at once. Note: This method will not avoid overlapping regions.
+   * @param {RegionParams[]} optionsArray - An array of region parameter objects.
+   * @returns {Region[]} Array of newly created Region instances.
+   */
+  public addRegions(optionsArray: RegionParams[]): Region[] {
+    if (!this.wavesurfer) {
+      throw Error('WaveSurfer is not initialized')
+    }
+
+    const duration = this.wavesurfer.getDuration()
+    const numberOfChannels = this.wavesurfer?.getDecodedData()?.numberOfChannels ?? 0
+    const newRegions: Region[] = []
+
+    const createAndSaveAll = (actualDuration: number, actualChannelCount: number) => {
+      for (const options of optionsArray) {
+        const region = new SingleRegion(options, actualDuration, actualChannelCount)
+        newRegions.push(region)
+      }
+
+      this.saveRegions(newRegions)
+    }
+
+    if (!duration) {
+      this.subscriptions.push(
+        this.wavesurfer.once('ready', (readyDuration) => {
+          const readyChannelCount = this.wavesurfer?.getDecodedData()?.numberOfChannels ?? 0
+          createAndSaveAll(readyDuration, readyChannelCount)
+        }),
+      )
+    } else {
+      createAndSaveAll(duration, numberOfChannels)
+    }
+    return newRegions
+  }
+
   /** Remove all regions */
   public clearRegions() {
     const regions = this.regions.slice()
